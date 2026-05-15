@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sites → Accounts — ClearAccept</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --color-background-success: #EAF3DE;
+  --color-border-success: #639922;
+  --color-text-success: #27500A;
+  --color-background-warning: #FAEEDA;
+  --color-border-warning: #854F0B;
+  --color-text-warning: #633806;
+  --color-background-danger: #FCEBEB;
+  --color-border-danger: #A32D2D;
+  --color-text-danger: #791F1F;
+  --color-background-secondary: #F5F4F0;
+  --color-border-tertiary: rgba(0,0,0,0.12);
+  --color-border-secondary: rgba(0,0,0,0.25);
+  --color-text-primary: #2C2C2A;
+  --color-text-secondary: #5F5E5A;
+  --color-background-primary: #ffffff;
+  --color-background-info: #E6F1FB;
+  --color-border-info: #185FA5;
+  --color-text-info: #0C447C;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #FAFAF9;
+  color: #2C2C2A;
+  padding: 40px 32px;
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+h1 { font-size: 18px; font-weight: 500; color: #2C2C2A; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #5F5E5A; margin-bottom: 28px; }
+.node { border-radius: var(--border-radius-md); padding: 10px 12px; cursor: pointer; transition: opacity 0.2s; border-width: 1.5px; border-style: solid; }
+.badge { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 4px; border: 0.5px solid; }
+.spill { font-size: 11px; padding: 2px 9px; border-radius: 100px; border: 0.5px solid; }
+.meta { font-size: 11px; color: var(--color-text-secondary); }
+.col-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Coffee Co Ltd</h1>
+<p class="subtitle">Merchant structure · Sites → Accounts</p>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+  <span style="font-size:12px;color:var(--color-text-secondary);">Status:</span>
+  <span class="spill" style="background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success);">Active</span>
+  <span class="spill" style="background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning);">Suspended</span>
+  <span class="spill" style="background:var(--color-background-danger);color:var(--color-text-danger);border-color:var(--color-border-danger);">On stop</span>
+  <span style="font-size:12px;color:var(--color-text-secondary);margin-left:8px;">Type:</span>
+  <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border-color:var(--color-border-tertiary);">P</span>
+  <span style="font-size:12px;color:var(--color-text-secondary);">Physical</span>
+  <span class="badge" style="background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info);margin-left:6px;">D</span>
+  <span style="font-size:12px;color:var(--color-text-secondary);">Digital</span>
+  <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border-color:var(--color-border-tertiary);margin-left:6px;">ISO</span>
+  <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border-color:var(--color-border-tertiary);margin-left:4px;">PF</span>
+  <span style="font-size:12px;color:var(--color-text-secondary);">PayFac</span>
+</div>
+
+<p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 16px;">Click a site or account to highlight connections.</p>
+
+<div style="display:flex;gap:0;margin-bottom:4px;">
+  <div style="flex:1;"><div class="col-label">Sites</div></div>
+  <div style="width:120px;"></div>
+  <div style="flex:1;"><div class="col-label">Accounts</div></div>
+</div>
+
+<div id="diag" style="position:relative;display:flex;gap:0;align-items:flex-start;">
+  <div id="sites-col" style="flex:1;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2;"></div>
+  <div style="width:120px;flex-shrink:0;"></div>
+  <div id="accounts-col" style="flex:1;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2;"></div>
+  <svg id="lsvg" style="position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:1;" overflow="visible"></svg>
+</div>
+
+<script>
+const SS = {
+  'Active':    {bg:'var(--color-background-success)',bd:'var(--color-border-success)',tx:'var(--color-text-success)',ln:'#3B6D11'},
+  'Suspended': {bg:'var(--color-background-warning)',bd:'var(--color-border-warning)',tx:'var(--color-text-warning)',ln:'#854F0B'},
+  'On Stop':   {bg:'var(--color-background-danger)',bd:'var(--color-border-danger)',tx:'var(--color-text-danger)',ln:'#A32D2D'},
+  'Inactive':  {bg:'var(--color-background-secondary)',bd:'var(--color-border-tertiary)',tx:'var(--color-text-secondary)',ln:'#888780'}
+};
+
+const sites = [
+  {id:'s1',name:'Manchester Piccadilly',type:'P',status:'Active'},
+  {id:'s2',name:'Tea Traders Inc',type:'P',status:'Active'},
+  {id:'s3',name:'Espresso Express',type:'D',status:'On Stop'},
+  {id:'s4',name:'Smooth Brew Co',type:'P',status:'Suspended'},
+];
+
+const accounts = [
+  {id:'a1',name:"O'Reilly - Osinski",type:'PF',status:'Active',channel:'ECOM',currency:'GBP',terminals:3,siteId:'s1'},
+  {id:'a2',name:'Schuppe Romaguera',type:'ISO',status:'Active',channel:'POS',currency:'GBP',terminals:11,siteId:'s1'},
+  {id:'a3',name:'Schaden Schmidt',type:'PF',status:'On Stop',channel:'POS · ECOM',currency:'GBP',terminals:5,siteId:'s1'},
+  {id:'a4',name:'Tea Main Account',type:'ISO',status:'Active',channel:'POS',currency:'GBP',terminals:20,siteId:'s2'},
+  {id:'a5',name:'Tea Digital',type:'PF',status:'Active',channel:'ECOM',currency:'GBP',terminals:0,siteId:'s2'},
+  {id:'a6',name:'Espresso Digital',type:'PF',status:'On Stop',channel:'ECOM',currency:'GBP',terminals:0,siteId:'s3'},
+  {id:'a7',name:'Smooth Card',type:'ISO',status:'Suspended',channel:'POS',currency:'GBP',terminals:8,siteId:'s4'},
+];
+
+let sel = null;
+
+function makeSite(s) {
+  const st = SS[s.status];
+  const isD = s.type === 'D';
+  const el = document.createElement('div');
+  el.id = s.id; el.className = 'node';
+  el.style.background = st.bg; el.style.borderColor = st.bd;
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+    <span class="badge" style="background:${isD?'var(--color-background-info)':'var(--color-background-secondary)'};color:${isD?'var(--color-text-info)':'var(--color-text-secondary)'};border-color:${isD?'var(--color-border-info)':'var(--color-border-tertiary)'};">${s.type}</span>
+    <span style="font-size:13px;font-weight:500;color:${st.tx};flex:1;">${s.name}</span>
+  </div>
+  <span class="spill" style="background:${st.bg};color:${st.tx};border-color:${st.bd};">${s.status}</span>`;
+  el.addEventListener('click', () => toggle(s.id, 'site'));
+  return el;
+}
+
+function makeAccount(a) {
+  const st = SS[a.status];
+  const el = document.createElement('div');
+  el.id = a.id; el.className = 'node';
+  el.style.background = st.bg; el.style.borderColor = st.bd;
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+    <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border-color:var(--color-border-tertiary);">${a.type}</span>
+    <span style="font-size:13px;font-weight:500;color:${st.tx};flex:1;">${a.name}</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span class="spill" style="background:${st.bg};color:${st.tx};border-color:${st.bd};">${a.status}</span>
+    <span class="meta">${a.channel} · ${a.currency}</span>
+    ${a.terminals > 0 ? `<span class="meta"><i class="ti ti-device-desktop" aria-hidden="true" style="font-size:12px;vertical-align:-1px;"></i> ${a.terminals}</span>` : ''}
+  </div>`;
+  el.addEventListener('click', () => toggle(a.id, 'account'));
+  return el;
+}
+
+function drawLines() {
+  const svg = document.getElementById('lsvg');
+  const cr = document.getElementById('diag').getBoundingClientRect();
+  svg.setAttribute('height', document.getElementById('diag').offsetHeight);
+  svg.innerHTML = '';
+  accounts.forEach(a => {
+    const se = document.getElementById(a.siteId);
+    const ae = document.getElementById(a.id);
+    if (!se || !ae) return;
+    const sr = se.getBoundingClientRect(), ar = ae.getBoundingClientRect();
+    const x1 = sr.right - cr.left, y1 = sr.top + sr.height / 2 - cr.top;
+    const x2 = ar.left - cr.left, y2 = ar.top + ar.height / 2 - cr.top;
+    const cx = (x1 + x2) / 2;
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', SS[a.status].ln);
+    p.setAttribute('stroke-width', '1.5');
+    p.setAttribute('opacity', '0.35');
+    p.id = `ln-${a.siteId}-${a.id}`;
+    p.dataset.sid = a.siteId; p.dataset.aid = a.id;
+    svg.appendChild(p);
+  });
+}
+
+function toggle(id, type) {
+  if (sel === id) { sel = null; resetAll(); return; }
+  sel = id;
+  const activeSites = new Set(), activeAccounts = new Set();
+  if (type === 'site') {
+    activeSites.add(id);
+    accounts.filter(a => a.siteId === id).forEach(a => activeAccounts.add(a.id));
+  } else {
+    activeAccounts.add(id);
+    const a = accounts.find(a => a.id === id);
+    if (a) activeSites.add(a.siteId);
+  }
+  sites.forEach(s => { const e = document.getElementById(s.id); if (e) e.style.opacity = activeSites.has(s.id) ? '1' : '0.18'; });
+  accounts.forEach(a => { const e = document.getElementById(a.id); if (e) e.style.opacity = activeAccounts.has(a.id) ? '1' : '0.18'; });
+  document.querySelectorAll('#lsvg path').forEach(p => {
+    const on = activeSites.has(p.dataset.sid) && activeAccounts.has(p.dataset.aid);
+    p.setAttribute('opacity', on ? '1' : '0.04');
+    p.setAttribute('stroke-width', on ? '2.5' : '1.5');
+  });
+}
+
+function resetAll() {
+  sites.forEach(s => { const e = document.getElementById(s.id); if (e) e.style.opacity = '1'; });
+  accounts.forEach(a => { const e = document.getElementById(a.id); if (e) e.style.opacity = '1'; });
+  document.querySelectorAll('#lsvg path').forEach(p => { p.setAttribute('opacity', '0.35'); p.setAttribute('stroke-width', '1.5'); });
+}
+
+document.getElementById('diag').addEventListener('click', e => { if (e.target === e.currentTarget) { sel = null; resetAll(); } });
+
+const sc = document.getElementById('sites-col');
+const ac = document.getElementById('accounts-col');
+sites.forEach(s => sc.appendChild(makeSite(s)));
+accounts.forEach(a => ac.appendChild(makeAccount(a)));
+setTimeout(drawLines, 120);
+window.addEventListener('resize', drawLines);
+</script>
+</body>
+</html>

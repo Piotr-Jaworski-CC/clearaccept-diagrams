@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounts → Funding Groups → Bank Accounts — ClearAccept</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --color-background-success: #EAF3DE;
+  --color-border-success: #639922;
+  --color-text-success: #27500A;
+  --color-background-warning: #FAEEDA;
+  --color-border-warning: #854F0B;
+  --color-text-warning: #633806;
+  --color-background-danger: #FCEBEB;
+  --color-border-danger: #A32D2D;
+  --color-text-danger: #791F1F;
+  --color-background-secondary: #F5F4F0;
+  --color-border-tertiary: rgba(0,0,0,0.12);
+  --color-border-secondary: rgba(0,0,0,0.25);
+  --color-text-primary: #2C2C2A;
+  --color-text-secondary: #5F5E5A;
+  --color-background-primary: #ffffff;
+  --color-background-info: #E6F1FB;
+  --color-border-info: #185FA5;
+  --color-text-info: #0C447C;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #FAFAF9;
+  color: #2C2C2A;
+  padding: 40px 32px;
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+h1 { font-size: 18px; font-weight: 500; color: #2C2C2A; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #5F5E5A; margin-bottom: 28px; }
+.node { border-radius: var(--border-radius-md); padding: 10px 12px; cursor: pointer; transition: opacity 0.2s; border-width: 1.5px; border-style: solid; }
+.badge { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 4px; border: 0.5px solid; }
+.spill { font-size: 11px; padding: 2px 9px; border-radius: 100px; border: 0.5px solid; }
+.meta { font-size: 11px; color: var(--color-text-secondary); }
+.col-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Coffee Co Ltd</h1>
+<p class="subtitle">Funding structure · Accounts → Funding groups → Bank accounts</p>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+  <span style="font-size:12px;color:var(--color-text-secondary);">Accounts:</span>
+  <span class="spill" style="background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success);">Active</span>
+  <span class="spill" style="background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning);">Suspended</span>
+  <span class="spill" style="background:var(--color-background-danger);color:var(--color-text-danger);border-color:var(--color-border-danger);">On stop</span>
+  <span style="font-size:12px;color:var(--color-text-secondary);margin-left:8px;">Funding groups:</span>
+  <span class="spill" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border-color:var(--color-border-tertiary);">Active</span>
+  <span class="spill" style="background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning);">On hold</span>
+</div>
+
+<p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 16px;">Click any node to highlight its connections.</p>
+
+<div style="display:flex;gap:0;margin-bottom:4px;">
+  <div style="flex:1.2;"><div class="col-label">Accounts</div></div>
+  <div style="width:50px;flex-shrink:0;"></div>
+  <div style="flex:1;"><div class="col-label">Funding groups</div></div>
+  <div style="width:50px;flex-shrink:0;"></div>
+  <div style="flex:1;"><div class="col-label">Bank accounts</div></div>
+</div>
+
+<div id="diag" style="position:relative;display:flex;gap:0;align-items:flex-start;">
+  <div id="ac-col" style="flex:1.2;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2;"></div>
+  <div style="width:50px;flex-shrink:0;"></div>
+  <div id="fg-col" style="flex:1;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2;"></div>
+  <div style="width:50px;flex-shrink:0;"></div>
+  <div id="ba-col" style="flex:1;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2;"></div>
+  <svg id="lsvg" style="position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:1;" overflow="visible"></svg>
+</div>
+
+<script>
+const AS = {
+  'Active':    {bg:'var(--color-background-success)',bd:'var(--color-border-success)',tx:'var(--color-text-success)',ln:'#3B6D11'},
+  'Suspended': {bg:'var(--color-background-warning)',bd:'var(--color-border-warning)',tx:'var(--color-text-warning)',ln:'#854F0B'},
+  'On Stop':   {bg:'var(--color-background-danger)',bd:'var(--color-border-danger)',tx:'var(--color-text-danger)',ln:'#A32D2D'},
+  'Inactive':  {bg:'var(--color-background-secondary)',bd:'var(--color-border-tertiary)',tx:'var(--color-text-secondary)',ln:'#888780'}
+};
+
+const accounts = [
+  {id:'a1',name:'Schuppe Romaguera',type:'ISO',status:'Active',channel:'POS',currency:'GBP',fgId:'fg1'},
+  {id:'a2',name:"O'Reilly - Osinski",type:'PF',status:'Active',channel:'ECOM',currency:'GBP',fgId:'fg2'},
+  {id:'a3',name:'Schaden Schmidt',type:'PF',status:'On Stop',channel:'POS · ECOM',currency:'GBP',fgId:'fg3'},
+  {id:'a4',name:'Tea Main Account',type:'ISO',status:'Active',channel:'POS',currency:'GBP',fgId:'fg1'},
+  {id:'a5',name:'Tea Digital',type:'PF',status:'Active',channel:'ECOM',currency:'GBP',fgId:'fg2'},
+  {id:'a6',name:'Espresso Digital',type:'PF',status:'On Stop',channel:'ECOM',currency:'GBP',fgId:'fg3'},
+  {id:'a7',name:'Smooth Card',type:'ISO',status:'Suspended',channel:'POS',currency:'GBP',fgId:'fg3'},
+];
+
+const fgs = [
+  {id:'fg1',name:'Cummings - Reichert',fType:'Net',delay:'T+1',onHold:false,baId:'ba1'},
+  {id:'fg2',name:'Miller Vandervort',fType:'Gross',delay:'T+3',onHold:false,baId:'ba2'},
+  {id:'fg3',name:'Farrell Inc',fType:'Net',delay:'T+1',onHold:true,baId:'ba3'},
+];
+
+const bas = [
+  {id:'ba1',bank:'Barclays',masked:'••4521',status:'Approved'},
+  {id:'ba2',bank:'HSBC',masked:'••2341',status:'Approved'},
+  {id:'ba3',bank:'Barclays',masked:'••2526',status:'Waiting for approval'},
+];
+
+function fgStyle(fg) {
+  return fg.onHold
+    ? {bg:'var(--color-background-warning)',bd:'var(--color-border-warning)',tx:'var(--color-text-warning)',ln:'#854F0B'}
+    : {bg:'var(--color-background-secondary)',bd:'var(--color-border-tertiary)',tx:'var(--color-text-primary)',ln:'#888780'};
+}
+
+function baStyle(ba) {
+  if (ba.status === 'Approved') return {bg:'var(--color-background-success)',bd:'var(--color-border-success)',tx:'var(--color-text-success)'};
+  if (ba.status === 'Waiting for approval') return {bg:'var(--color-background-warning)',bd:'var(--color-border-warning)',tx:'var(--color-text-warning)'};
+  return {bg:'var(--color-background-secondary)',bd:'var(--color-border-tertiary)',tx:'var(--color-text-secondary)'};
+}
+
+let sel = null, selType = null;
+
+function makeAccount(a) {
+  const s = AS[a.status];
+  const el = document.createElement('div');
+  el.id = a.id; el.className = 'node';
+  el.style.background = s.bg; el.style.borderColor = s.bd;
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+    <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border-color:var(--color-border-tertiary);">${a.type}</span>
+    <span style="font-size:12px;font-weight:500;color:${s.tx};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name}</span>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+    <span class="spill" style="background:${s.bg};color:${s.tx};border-color:${s.bd};">${a.status}</span>
+    <span class="meta">${a.channel} · ${a.currency}</span>
+  </div>`;
+  el.addEventListener('click', () => toggle(a.id, 'account'));
+  return el;
+}
+
+function makeFG(fg) {
+  const s = fgStyle(fg);
+  const el = document.createElement('div');
+  el.id = fg.id; el.className = 'node';
+  el.style.background = s.bg; el.style.borderColor = s.bd;
+  el.innerHTML = `<div style="font-size:12px;font-weight:500;color:${s.tx};margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${fg.name}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+    ${fg.onHold ? `<span class="spill" style="background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning);">On hold</span>` : ''}
+    <span class="meta">${fg.fType} · ${fg.delay}</span>
+  </div>`;
+  el.addEventListener('click', () => toggle(fg.id, 'fg'));
+  return el;
+}
+
+function makeBA(ba) {
+  const s = baStyle(ba);
+  const el = document.createElement('div');
+  el.id = ba.id; el.className = 'node';
+  el.style.background = s.bg; el.style.borderColor = s.bd;
+  el.innerHTML = `<div style="font-size:12px;font-weight:500;color:${s.tx};margin-bottom:5px;">${ba.bank} ${ba.masked}</div>
+  <span class="spill" style="background:${s.bg};color:${s.tx};border-color:${s.bd};font-size:10px;">${ba.status}</span>`;
+  el.addEventListener('click', () => toggle(ba.id, 'ba'));
+  return el;
+}
+
+function drawLines() {
+  const svg = document.getElementById('lsvg');
+  const cr = document.getElementById('diag').getBoundingClientRect();
+  svg.setAttribute('height', document.getElementById('diag').offsetHeight);
+  svg.innerHTML = '';
+
+  accounts.forEach(a => {
+    const ae = document.getElementById(a.id), fe = document.getElementById(a.fgId);
+    if (!ae || !fe) return;
+    const ar = ae.getBoundingClientRect(), fr = fe.getBoundingClientRect();
+    const x1 = ar.right - cr.left, y1 = ar.top + ar.height / 2 - cr.top;
+    const x2 = fr.left - cr.left, y2 = fr.top + fr.height / 2 - cr.top;
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', `M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}`);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', AS[a.status].ln);
+    p.setAttribute('stroke-width', '1.5');
+    p.setAttribute('opacity', '0.3');
+    p.dataset.t = 'a2fg'; p.dataset.aid = a.id; p.dataset.fgid = a.fgId;
+    svg.appendChild(p);
+  });
+
+  fgs.forEach(fg => {
+    const fe = document.getElementById(fg.id), be = document.getElementById(fg.baId);
+    if (!fe || !be) return;
+    const fr = fe.getBoundingClientRect(), br = be.getBoundingClientRect();
+    const x1 = fr.right - cr.left, y1 = fr.top + fr.height / 2 - cr.top;
+    const x2 = br.left - cr.left, y2 = br.top + br.height / 2 - cr.top;
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', `M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}`);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', fgStyle(fg).ln);
+    p.setAttribute('stroke-width', '1.5');
+    p.setAttribute('opacity', '0.3');
+    p.dataset.t = 'fg2ba'; p.dataset.fgid = fg.id; p.dataset.baid = fg.baId;
+    svg.appendChild(p);
+  });
+}
+
+function toggle(id, type) {
+  if (sel === id) { sel = null; selType = null; resetAll(); return; }
+  sel = id; selType = type;
+  const activeA = new Set(), activeFG = new Set(), activeBA = new Set();
+  if (type === 'account') {
+    activeA.add(id);
+    const a = accounts.find(x => x.id === id);
+    if (a) { activeFG.add(a.fgId); const fg = fgs.find(x => x.id === a.fgId); if (fg) activeBA.add(fg.baId); }
+  } else if (type === 'fg') {
+    activeFG.add(id);
+    accounts.filter(a => a.fgId === id).forEach(a => activeA.add(a.id));
+    const fg = fgs.find(x => x.id === id); if (fg) activeBA.add(fg.baId);
+  } else if (type === 'ba') {
+    activeBA.add(id);
+    fgs.filter(fg => fg.baId === id).forEach(fg => { activeFG.add(fg.id); accounts.filter(a => a.fgId === fg.id).forEach(a => activeA.add(a.id)); });
+  }
+  accounts.forEach(a => { const e = document.getElementById(a.id); if (e) e.style.opacity = activeA.has(a.id) ? '1' : '0.15'; });
+  fgs.forEach(fg => { const e = document.getElementById(fg.id); if (e) e.style.opacity = activeFG.has(fg.id) ? '1' : '0.15'; });
+  bas.forEach(ba => { const e = document.getElementById(ba.id); if (e) e.style.opacity = activeBA.has(ba.id) ? '1' : '0.15'; });
+  document.querySelectorAll('#lsvg path').forEach(p => {
+    const on = p.dataset.t === 'a2fg' ? activeA.has(p.dataset.aid) && activeFG.has(p.dataset.fgid) : activeFG.has(p.dataset.fgid) && activeBA.has(p.dataset.baid);
+    p.setAttribute('opacity', on ? '1' : '0.04');
+    p.setAttribute('stroke-width', on ? '2.5' : '1.5');
+  });
+}
+
+function resetAll() {
+  accounts.forEach(a => { const e = document.getElementById(a.id); if (e) e.style.opacity = '1'; });
+  fgs.forEach(fg => { const e = document.getElementById(fg.id); if (e) e.style.opacity = '1'; });
+  bas.forEach(ba => { const e = document.getElementById(ba.id); if (e) e.style.opacity = '1'; });
+  document.querySelectorAll('#lsvg path').forEach(p => { p.setAttribute('opacity', '0.3'); p.setAttribute('stroke-width', '1.5'); });
+}
+
+document.getElementById('diag').addEventListener('click', e => { if (e.target === e.currentTarget) { sel = null; resetAll(); } });
+
+const ac = document.getElementById('ac-col'), fc = document.getElementById('fg-col'), bc = document.getElementById('ba-col');
+accounts.forEach(a => ac.appendChild(makeAccount(a)));
+fgs.forEach(fg => fc.appendChild(makeFG(fg)));
+bas.forEach(ba => bc.appendChild(makeBA(ba)));
+setTimeout(drawLines, 120);
+window.addEventListener('resize', drawLines);
+</script>
+</body>
+</html>
